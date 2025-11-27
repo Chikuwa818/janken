@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="jp">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="jquery-2.1.3.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <title>Eカード</title>
+</head>
+<div class="wrap">
+    <div class="wrap_inner">
+
+        <header><img src="img/kaiji.png" alt="ざわ・・ざわ・・"></header>
+        <h1>Eカード</h1>
+
+        <body>
+            <div class="game_area">
+                <div class="score">
+                    <div class="player_score"></div>
+                    <div class="cpu_score"></div>
+                </div>
+                <div class="stanby_card cpu_deck">
+                    <div class="cpu_hands" data-type="slave"><img src="img/tonegawa.png" alt=""></div>
+                    <div class="cpu_hands" data-type="citizen"><img src="img/tonegawa.png" alt=""></div>
+                    <div class="cpu_hands" data-type="citizen"><img src="img/tonegawa.png" alt=""></div>
+                    <div class="cpu_hands" data-type="citizen"><img src="img/tonegawa.png" alt=""></div>
+                    <div class="cpu_hands" data-type="citizen"><img src="img/tonegawa.png" alt=""></div>
+                </div>
+
+                <div class="battle_field">
+
+                    <div class="cpu_field">cpu choice</div>
+                    <p>VS</p>
+                    <div class="player_field">player choice</div>
+
+                </div>
+
+                <div class="stanby_card player_deck">
+                    <div class="player_hands" data-type="emperor"><img src="img/emperor.png" alt=""></div>
+                    <div class="player_hands" data-type="citizen"><img src="img/citizen.png" alt=""></div>
+                    <div class="player_hands" data-type="citizen"><img src="img/citizen.png" alt=""></div>
+                    <div class="player_hands" data-type="citizen"><img src="img/citizen.png" alt=""></div>
+                    <div class="player_hands" data-type="citizen"><img src="img/citizen.png" alt=""></div>
+                </div>
+            </div>
+
+
+
+
+            <div class="action">
+                <div class="rule">ルール</div>
+                <div class="reset">リセット</div>
+            </div>
+
+
+            <script>
+            
+                // CPUの手札
+                let cpuDeck = [
+                    { type: "citizen" },
+                    { type: "citizen" },
+                    { type: "citizen" },
+                    { type: "citizen" },
+                    { type: "slave" }
+                ];
+            
+                // プレイヤーの手札
+                let playerDeck = [
+                    { type: "citizen" },
+                    { type: "citizen" },
+                    { type: "citizen" },
+                    { type: "citizen" },
+                    { type: "emperor" }
+                ];
+            
+                // CPUの手札をランダムで選択して返す、カードを削除するスクリプト
+                function drawCpuCard() {
+            
+                    // CPUデッキの枚数を数える
+                    let numberOfCards = cpuDeck.length;
+
+                    // ランダム変数
+                    let randomValue = Math.random();
+            
+                    //  Math.random * CPUの手札枚数の数を数える
+                    let randomIndex = Math.floor(randomValue * numberOfCards);
+            
+                    // CPUから、その位置のカードを取り出す
+                    let card = cpuDeck[randomIndex];
+            
+                    // 取り出したカードはデッキから削除
+                    cpuDeck.splice(randomIndex, 1);
+            
+                    // 取り出したカードを返す
+                    return card;
+                }
+            
+                // =============================
+                // 勝敗判定
+                // =============================
+                function judge(playerType, cpuType) {
+            
+                    let result = "draw"; // 初期値は引き分け
+            
+                    if (playerType === cpuType) {
+                        result = "draw";
+                    } else if (playerType === "citizen" && cpuType === "slave") {
+                        result = "player";
+                    } else if (playerType === "citizen" && cpuType === "emperor") {
+                        result = "cpu";
+                    } else if (playerType === "slave" && cpuType === "emperor") {
+                        result = "player";
+                    } else if (playerType === "slave" && cpuType === "citizen") {
+                        result = "cpu";
+                    } else if (playerType === "emperor" && cpuType === "citizen") {
+                        result = "player";
+                    } else if (playerType === "emperor" && cpuType === "slave") {
+                        result = "cpu";
+                    }
+            
+                    return result;
+                }
+            
+                // =============================
+                // カード画像を返す
+                // =============================
+                function cardLabel(type) {
+            
+                    if (type === "citizen") {
+                        return '<img src="img/citizen.png" class="card_img">';
+                    } else if (type === "slave") {
+                        return '<img src="img/slave.png" class="card_img">';
+                    } else if (type === "emperor") {
+                        return '<img src="img/emperor.png" class="card_img">';
+                    } else {
+                        return "";
+                    }
+                }
+            
+                // =============================
+                // 画面の準備ができたら実行
+                // =============================
+                $(function () {
+            
+                    let gameOver = false; // 勝敗がついたら true
+            
+                    // =============================
+                    // リセットボタン
+                    // =============================
+                    $(".reset").on("click", function () {
+                        location.reload();
+                    });
+            
+                    // =============================
+                    // プレイヤーがカードをクリック
+                    // =============================
+                    $(".player_deck .player_hands").on("click", function () {
+            
+                        // もうゲームが終わっていたら何もしない
+                        if (gameOver === true) {
+                            return;
+                        }
+            
+                        // クリックされたカード要素（jQueryオブジェクト）
+                        let $clickedCard = $(this); //$clickedCard →　$いらないっぽい
+            
+                        // data-type の値 → "citizen" または "emperor"
+                        let playerType = $clickedCard.data("type");
+            
+                        // -------- プレイヤー山札から同じタイプのカードを1枚削除 --------
+                        let pIndex = -1;
+                        for (let i = 0; i < playerDeck.length; i++) {
+                            if (playerDeck[i].type === playerType) {
+                                pIndex = i;
+                                break;
+                            }
+                        }
+                        if (pIndex !== -1) {
+                            playerDeck.splice(pIndex, 1);
+                        }
+            
+                        // クリックされたカードを画面から消す
+                        $clickedCard.remove();//$clickedCard →　$いらないっぽい
+            
+                        // -------- CPUがカードを1枚引く（エラーチェックなし） --------
+                        let cpuCard = drawCpuCard();
+            
+                        // CPU表示用カードからも対応1枚を削除
+                        let $allCpuCards = $(".cpu_deck .cpu_hands");
+                        let $cpuCardDom = null;
+            
+                        $allCpuCards.each(function () {
+                            let $oneCard = $(this);
+                            let cardType = $oneCard.data("type");
+            
+                            if ($cpuCardDom === null && cardType === cpuCard.type) {
+                                $cpuCardDom = $oneCard;
+                            }
+                        });
+            
+                        if ($cpuCardDom !== null) {
+                            $cpuCardDom.remove();
+                        }
+            
+                        // -------- 場にカードを表示 --------
+                        $(".battle_field .cpu_field").html(cardLabel(cpuCard.type));
+                        $(".battle_field .player_field").html(cardLabel(playerType));
+            
+                        // -------- 勝敗判定 --------
+                        let result = judge(playerType, cpuCard.type);
+            
+                        if (result === "player") {
+            
+                            $(".player_score").text("あなたの勝ち");
+                            gameOver = true;
+            
+                        } else if (result === "cpu") {
+            
+                            $(".cpu_score").text("CPUの勝ち");
+                            gameOver = true;
+            
+                        } else {
+            
+                            console.log("引き分け → 続行");
+                        }
+            
+                    });
+            
+                    // =============================
+                    // ルール説明
+                    // =============================
+                    $(".rule").on("click", function () {
+            
+                        alert(
+                            "【ルール】\n" +
+                            "皇帝 > 市民 > 奴隷 > 皇帝（じゃんけんみたいな力関係）\n" +
+                            "皇帝側：皇帝1枚 + 市民4枚\n" +
+                            "奴隷側：奴隷1枚 + 市民4枚\n" +
+                            "市民同士 → 引き分けで次へ\n" +
+                            "勝ちパターンが出た瞬間に勝敗決定\n" +
+                            "プレイヤーは皇帝側固定"
+                        );
+                    });
+            
+                });
+            
+            </script>
+        </body>
+    </div>
+</div>
+
+</html>
